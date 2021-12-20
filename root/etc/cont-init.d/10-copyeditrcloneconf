@@ -1,0 +1,50 @@
+#!/usr/bin/with-contenv bash
+# shellcheck shell=bash
+# Copyright (c) 2020, MrDoob
+# All rights reserved.
+function log() {
+echo "[UPLOADER] ${1}"
+}
+log "*** checking rclone.conf"
+while true; do
+if [[ ! -f "/config/rclone.conf" ]];then
+   log "-->> [ WARNING ] ------------------------- [ WARNING ] <<--"
+   log "-->> [ WARNING ] no rclone.conf file found [ WARNING ] <<--"
+   log "-->> [ WARNING ]       sleeping for 30s    [ WARNING ] <<--"
+   log "-->> [ WARNING ] ------------------------- [ WARNING ] <<--"
+   sleep 3 && continue
+else
+   sleep 1 && break
+fi
+done
+
+while true; do
+KEYS=$(ls -1p /config/keys/ | wc -l)
+GDSA=$(ls -f /config/keys/ grep -E 'GDSA' 1>/dev/null 2>&1 && echo true || echo false)
+if [ ${KEYS} -lt "1" ] && [ ${GDSA} == "false" ]; then
+    log "-->> [ WARNING ] ---------------- [ WARNING ] <<--"
+    log "-->> [ WARNING ]  No GDSAS found  [ WARNING ] <<--"
+    log "-->> [ WARNING ] ---------------- [ WARNING ] <<--"
+    sleep 30 && continue
+else
+    sleep 1 && break
+fi
+done
+if [[ ! -f "/root/.config/rclone/rclone.conf" ]];then
+   mkdir -p /root/.config/rclone/
+   ln -s /config/rclone.conf /root/.config/rclone/rclone.conf
+fi
+log "-> Copying rclone.conf <-"
+    mkdir -p /config/rclone
+    find /config -name "rclone.conf" -type f -exec cp {} /config/rclone/rclone-docker.conf \;
+    log "-> Make needed edits to rclone-docker.conf <-"
+    sed -i "s#/opt/appdata/plexguide/.blitzkeys/#/config/keys/#g" /config/rclone/rclone-docker.conf
+    sed -i "s#/opt/appdata/uploader/#/config/keys/#g" /config/rclone/rclone-docker.conf
+    sed -i "s#/opt/appdata/services/uploader/keys/#/config/keys/#g" /config/rclone/rclone-docker.conf
+    sed -i "s#/opt/uploader/keys/#/config/keys/#g" /config/rclone/rclone-docker.conf
+    sed -i '/pgunion/{n;N;d;}' /config/rclone/rclone-docker.conf
+    sed -i '/pgunion/d' /config/rclone/rclone-docker.conf
+    sed -i "s#rotate 4#rotate 1#g" /etc/logrotate.conf
+    sed -i "s#weekly#daily#g" /etc/logrotate.conf
+log "-> rclone_docker.conf edits done <-"
+#<EOF>#

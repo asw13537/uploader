@@ -1,0 +1,51 @@
+#!/usr/bin/with-contenv bash
+# shellcheck shell=bash
+# Copyright (c) 2020, MrDoob
+# All rights reserved.
+function log() {
+echo "[UPLOADER] ${1}"
+}
+
+addgroup -g 911 abc 1>/dev/null 2>&1
+adduser -u 911 -D -G abc abc 1>/dev/null 2>&1
+apk add --quiet --no-cache --no-progress wget curl bash unzip
+log "-> Configure RCLONE || start <- [RCLONE]"
+log "-> please hold the line ...... <- [UPLOADER]"
+
+wget https://downloads.rclone.org/rclone-current-linux-amd64.zip -qO rclone.zip && \
+unzip -q rclone.zip && \
+rm -f rclone.zip && \
+mv rclone-*-linux-amd64/rclone /usr/bin/ && \
+rm -rf rclone-**
+
+chown abc:abc /usr/bin/rclone 1>/dev/null 2>&1
+chmod 755 /usr/bin/rclone 1>/dev/null 2>&1
+rm -rf /tmp/rclone** 1>/dev/null 2>&1
+log "-> Yippee-ki-yay, motherfucker! it's done <- [UPLOADER]"
+log "-> Installed rclone Version $(rclone --version | awk '{print $2}' | head -n 1 | sed -e 's/v//g' | cut -c1-6) <- [UPLOADER]"
+
+log "**** update system ****" 
+apk --quiet --no-cache --no-progress update
+log "**** install build packages ****"
+apk add --quiet --no-cache --no-progress \
+    ca-certificates logrotate shadow bash bc findutils coreutils openssl php7 php7-fpm php7-mysqli php7-json php7-openssl \
+    php7-curl php7-zlib php7-xml php7-phar php7-dom php7-xmlreader php7-ctype php7-mbstring php7-gd \
+    curl nginx libxml2-utils tzdata openntpd grep tar musl
+log "**** upgrade system ****"
+apk --quiet --no-cache --no-progress upgrade
+apk --quiet --no-progress --no-cache fix
+apk del --quiet --clean-protected --no-progress
+rm -rf /var/cache/apk/*
+
+rm -rf /etc/nginx/nginx.conf
+cp -r /conf/nginx.conf /etc/nginx/nginx.conf
+cp -r /conf/fpm-pool.conf /etc/php7/php-fpm.d/www.conf
+cp -r /conf/php.j2 /etc/php7/conf.d/zzz_custom.ini
+
+pids="$(pgrep 'nginx')"
+if [ "$pids" != "" ]; then
+  kill -15 $pids
+  sleep 2
+fi
+
+#EOF#

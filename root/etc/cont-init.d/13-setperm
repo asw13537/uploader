@@ -1,0 +1,33 @@
+#!/usr/bin/with-contenv bash
+# shellcheck shell=bash
+# Copyright (c) 2020, MrDoob
+# All rights reserved.
+## function source
+function log() {
+echo "[Uploader] ${1}"
+}
+log "-> Setting Permissions || start <-"
+
+mkdir -p /config/{vars,discord,env}
+
+if [[ ! -f /config/vars/lastGDSA ]];then
+   touch /config/vars/lastGDSA 1>/dev/null 2>&1
+   echo "1" > /config/vars/lastGDSA
+fi
+if [[ ! -f /config/vars/gdsaAmount ]];then
+   touch /config/vars/gdsaAmount 1>/dev/null 2>&1
+   echo "1" > /config/vars/gdsaAmount
+fi
+if [[ -d /config/vars ]];then chown -cR abc:abc /config/vars/ 1>/dev/null 2>&1;fi
+
+folder="/mnt/downloads /config /app /var/www /run /var/lib/nginx /var/log/nginx /root"
+for i in ${folder}; do
+   chown -cR abc:abc $i 1>/dev/null 2>&1
+   chmod -cR a=rx,u+w $i 1>/dev/null 2>&1
+done
+
+if [[ $(command -v rclone | wc -l) == "1" ]]; then
+    chown -cf abc:abc /root
+fi
+log "-> Setting Permissions || done <-"
+#EOF
